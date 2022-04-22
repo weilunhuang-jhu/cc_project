@@ -8,12 +8,23 @@ import numpy as np
 import SessionState
 import streamlit as st
 import tensorflow as tf
-from utils import get_image, load_and_prep_image, classes_and_models, update_logger, predict_json
+from tensorflow.keras import applications
+from keras.models import load_model, Model
+from ugly_duckling import wide_field_ugly_duckling_analysis
+from utils import get_image_tf, get_image_np, classes_and_models, update_logger, predict_json
 
 # Setup environment credentials (you'll need to change these)
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "ccproject-343606-498535894d22.json" # change for your GCP key
 PROJECT = "ccproject-343606" # change for your GCP project
 REGION = None # change for your GCP region (where your model is hosted)
+
+# load vgg model for classifier
+cnn_classifier_path = '/home/weilunhuang/temp/SPL_UD_DL/Models/vgg16/finetuning_vgg16_cnn_100_epochs.h5'
+cnn_classifier = load_model(cnn_classifier_path)
+
+# vgg model for feature extractor
+vgg_model = applications.vgg16.VGG16(include_top=True, weights='imagenet')
+cnn_feature_extractor = Model(inputs=vgg_model.input, outputs=vgg_model.get_layer("fc2").output)
 
 ### Streamlit code (works as a straigtht-forward script) ###
 st.title("Welcome to Skin Lesion Detection in Clinical Image")
@@ -30,19 +41,23 @@ def make_prediction(image, model, class_names):
      pred_class (prediction class from class_names)
      pred_conf (model confidence)
     """
-    image = get_image(image)
+    img = get_image_tf(image)
     # # Turn tensors into int16 (saves a lot of space, ML Engine has a limit of 1.5MB per request)
     # image = tf.cast(tf.expand_dims(image, axis=0), tf.int16)
     # # image = tf.expand_dims(image, axis=0)
     preds = predict_json(project=PROJECT,
                          region=REGION,
                          model=model,
-                         instances=image)
+                         instances=img)
     
     preds = preds[-1]['sequential']
     pred_class = class_names[np.argmax(preds)]
 
     return pred_class
+
+def ugly_duckling_prediction(image):
+    img = get_image_np(image)
+    wide_field_ugly_duckling_analysis(img, cnn_classifier, cnn_feature_extractor)
 
 # Pick the model version
 choose_model = st.sidebar.selectbox(
@@ -65,8 +80,8 @@ if st.checkbox("Show classes"):
     st.write(f"You chose {MODEL}, these are the classes of patterns it can identify:\n", CLASSES)
 
 # File uploader allows user to add their own image
-uploaded_file = st.file_uploader(label="Upload an image of food",
-                                 type=["png", "jpeg", "jpg"])
+uploaded_file = st.file_uploader(label="Upload an image of skin lesion",
+                                 type=["png", "jpeg", "jpg", "tiff"])
 
 # Setup session state to remember state of app so refresh isn't always needed
 # See: https://discuss.streamlit.io/t/the-button-inside-a-button-seems-to-reset-the-whole-app-why/1051/11 
@@ -77,7 +92,7 @@ if not uploaded_file:
     st.warning("Please upload an image.")
     st.stop()
 else:
-    session_state.uploaded_image = uploaded_file.read()
+    session_state.uploaded_image = uploaded_file.read() # byte
     st.image(session_state.uploaded_image, use_column_width=True)
     pred_button = st.button("Predict")
 
@@ -86,7 +101,7 @@ if pred_button:
     session_state.pred_button = True 
 
 # And if they did...
-if session_state.pred_button:
+if session_state.pred_button and MODEL== "cc_project_skin_lesion_vgg16":
     # session_state.image, session_state.pred_class, session_state.pred_conf = make_prediction(session_state.uploaded_image, model=MODEL, class_names=CLASSES)
     prediction = make_prediction(session_state.uploaded_image, model=MODEL, class_names=CLASSES)
     st.write(f"Prediction: {prediction}")
@@ -118,6 +133,11 @@ if session_state.pred_button:
                                 pred_conf=session_state.pred_conf,
                                 correct=False,
                                 user_label=session_state.correct_class))
+
+if session_state.pred_button and MODEL== "cc_project_ugly_duckling":
+    print("============================")
+    ugly_duckling_prediction(session_state.uploaded_image)
+
 
 # TODO: code could be cleaned up to work with a main() function...
 # if __name__ == "__main__":

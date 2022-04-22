@@ -1,21 +1,11 @@
 # Utils for preprocessing data etc 
 import tensorflow as tf
 import numpy as np
+import cv2
 from keras.preprocessing import image
 from keras.applications.imagenet_utils import decode_predictions, preprocess_input
 import googleapiclient.discovery
 from google.api_core.client_options import ClientOptions
-
-base_classes = ['chicken_curry',
- 'chicken_wings',
- 'fried_rice',
- 'grilled_salmon',
- 'hamburger',
- 'ice_cream',
- 'pizza',
- 'ramen',
- 'steak',
- 'sushi']
 
 lesion_classes = [
     'SPL',
@@ -31,12 +21,8 @@ classes_and_models = {
         "model_name": "cc_project_skin_lesion_vgg16" # change to be your model name
     },
     "model_2": {
-        "classes": sorted(base_classes + ["donut"]),
-        "model_name": "efficientnet_model_2_11_classes"
-    },
-    "model_3": {
-        "classes": sorted(base_classes + ["donut", "not_food"]),
-        "model_name": "efficientnet_model_3_12_classes"
+        "classes": lesion_classes,
+        "model_name": "cc_project_ugly_duckling"
     }
 }
 
@@ -90,10 +76,20 @@ def predict_json(project, region, model, instances, version=None):
     return response["predictions"]
 
 # Create a function to import an image and resize it to be able to be used with our model
-def get_image(filename):
+def get_image_tf(filename):
     img = tf.io.decode_image(filename, channels=3) # make sure there's 3 colour channels (for PNG's)
     img = tf.image.resize(img, [150, 150])
     # x = image.img_to_array(img)
+    return img
+
+# Create a function to import an image to np array
+def get_image_np(filename):
+    img = tf.io.decode_image(filename, channels=3) # make sure there's 3 colour channels (for PNG's)
+    img = img.numpy().transpose(1,0,2) # make to HWC align with opencv
+    img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+    # print("debug")
+    # print(img.shape)
+    # cv2.imwrite("test.png", img)
     return img
 
 # Create a function to import an image and resize it to be able to be used with our model
