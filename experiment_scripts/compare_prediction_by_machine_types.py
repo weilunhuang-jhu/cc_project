@@ -13,15 +13,6 @@ from keras.preprocessing import image
 from keras.applications.imagenet_utils import decode_predictions, preprocess_input
 
 
-# model = "cc_project_skin_lesion_vgg16_gpu" # GPU
-model = "cc_project_skin_lesion_vgg16" # CPU
-
-# Setup environment credentials (you'll need to change these)
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "ccproject-343606-498535894d22.json" # change for your GCP key
-PROJECT = "ccproject-343606" # change for your GCP project
-# REGION = "us-east4" # GPU
-REGION = None # CPU
-
 def get_image(path):
     """ Read image to np array and then turn to list object. (for json) """
     img = image.load_img(path, target_size=(150, 150, 3))
@@ -80,18 +71,32 @@ def predict_json_online(project, region, model, instances, version=None):
 
     return response["predictions"]
 
-# Get Prediction time
-Blob_folder = "../data/Blobs"
-fnames = glob.glob(Blob_folder + "/*.png")
-fnames.sort()
-fnames = fnames[:2] # Debug: Change number of image here
-print(fnames)
-t0 = time.perf_counter()
-for fname in fnames:
+def main():
+
+    # Setup environment credentials (you'll need to change these)
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "ccproject-343606-498535894d22.json" # change for your GCP key
+    PROJECT = "ccproject-343606" # change for your GCP project
+    models = ["cc_project_skin_lesion_vgg16", "cc_project_skin_lesion_vgg16_gpu"]
+    REGIONs = [None, "us-east4"]
+
+    # Get Prediction time
+    Blob_folder = "../data/Blobs"
+    fnames = glob.glob(Blob_folder + "/*.png")
+    fnames.sort()
+    fname = fnames[0]
     img = get_image(fname)
-    preds = predict_json_online(project=PROJECT,
-                            region=REGION,
-                            model=model,
-                            instances=img)
-t1 = time.perf_counter()
-print("time: " + str(t1-t0))
+    num_img = 10
+
+    print("Using regional end-points")
+    for model,region in zip(models, REGIONs):
+        t0 = time.perf_counter()
+        for i in range(num_img):
+            preds = predict_json_online(project=PROJECT,
+                                    region=region,
+                                    model=model,
+                                    instances=img)
+        t1 = time.perf_counter()
+        print(model + " : " + str(t1-t0))
+
+if __name__ == "__main__":
+    main()
