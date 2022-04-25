@@ -562,12 +562,13 @@ def wide_field_ugly_duckling_analysis(img, cnn_classifer, cnn_feature_extractor)
     #CLAHE
     wf_feature_embedding_overlay_montage_RGB_image = apply_clahe(wf_feature_embedding_overlay_montage_RGB_image)
 
-    #Save with colormap
-    ranked_ugly_ducking_path = 'CNN_ugly_duckling_img.png'
+    # #Save with colormap
+    # ranked_ugly_ducking_path = 'CNN_ugly_duckling_img.png'
 
-    #Save with colorbar
-    cv2.imwrite(ranked_ugly_ducking_path, wf_feature_embedding_overlay_montage_RGB_image)
+    # #Save with colorbar
+    # cv2.imwrite(ranked_ugly_ducking_path, wf_feature_embedding_overlay_montage_RGB_image)
 
+    return wf_feature_embedding_overlay_montage_RGB_image
 
 def main():
     # Load the wide field image

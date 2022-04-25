@@ -57,7 +57,10 @@ def make_prediction(image, model, class_names):
 
 def ugly_duckling_prediction(image):
     img = get_image_np(image)
-    wide_field_ugly_duckling_analysis(img, cnn_classifier, cnn_feature_extractor)
+    ugly_duckling_img = wide_field_ugly_duckling_analysis(img, cnn_classifier, cnn_feature_extractor)
+    ugly_duckling_img = ugly_duckling_img.transpose(1,0,2)
+
+    return ugly_duckling_img
 
 # Pick the model version
 choose_model = st.sidebar.selectbox(
@@ -136,7 +139,8 @@ if session_state.pred_button and MODEL== "cc_project_skin_lesion_vgg16":
 
 if session_state.pred_button and MODEL== "cc_project_ugly_duckling":
     print("============================")
-    ugly_duckling_prediction(session_state.uploaded_image)
+    img_ugly_duckling = ugly_duckling_prediction(session_state.uploaded_image)
+    st.image(img_ugly_duckling,caption="Ugly Duckling", use_column_width=True, channels="BGR")
 
 
 # TODO: code could be cleaned up to work with a main() function...
