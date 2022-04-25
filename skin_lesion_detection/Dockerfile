@@ -4,6 +4,14 @@ FROM python:3.7
 # Expose port you want your app on
 EXPOSE 8080
 
+# # VIRTUAL ENV
+# RUN virtualenv /env -p python3.7
+# ENV VIRTUAL_ENV /env
+# ENV PATH /env/bin:$PATH
+
+# sudo issue
+RUN apt-get update && apt-get install sudo
+
 # Upgrade pip 
 RUN pip install -U pip
 

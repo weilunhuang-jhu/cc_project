@@ -2,13 +2,11 @@
 # Part of code borrowed from: https://github.com/mrdbourke/cs329s-ml-deployment-tutorial 
 
 import os
-import json
-import requests
 import numpy as np
 import SessionState
 import streamlit as st
 import tensorflow as tf
-from utils import get_image, load_and_prep_image, classes_and_models, update_logger, predict_json
+from utils import get_image, classes_and_models, update_logger, predict_json
 
 # Setup environment credentials (you'll need to change these)
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "ccproject-343606-498535894d22.json" # change for your GCP key
@@ -31,9 +29,8 @@ def make_prediction(image, model, class_names):
      pred_conf (model confidence)
     """
     image = get_image(image)
-    # # Turn tensors into int16 (saves a lot of space, ML Engine has a limit of 1.5MB per request)
-    # image = tf.cast(tf.expand_dims(image, axis=0), tf.int16)
-    # # image = tf.expand_dims(image, axis=0)
+    image = image.tolist() # turn input into list (ML Engine wants JSON)
+
     preds = predict_json(project=PROJECT,
                          region=REGION,
                          model=model,
@@ -86,12 +83,11 @@ if pred_button:
     session_state.pred_button = True 
 
 # And if they did...
-if session_state.pred_button:
+if session_state.pred_button and MODEL == "cc_project_skin_lesion_vgg16":
     # session_state.image, session_state.pred_class, session_state.pred_conf = make_prediction(session_state.uploaded_image, model=MODEL, class_names=CLASSES)
     prediction = make_prediction(session_state.uploaded_image, model=MODEL, class_names=CLASSES)
+    session_state.pred_class = prediction
     st.write(f"Prediction: {prediction}")
-    # st.write(f"Prediction: {prediction}, \
-    #            Confidence: {session_state.pred_conf:.3f}")
 
     # Create feedback mechanism (building a data flywheel)
     session_state.feedback = st.selectbox(
@@ -102,23 +98,21 @@ if session_state.pred_button:
     elif session_state.feedback == "Yes":
         st.write("Thank you for your feedback!")
         # Log prediction information to terminal (this could be stored in Big Query or something...)
-        print(update_logger(image=session_state.image,
+        print(update_logger(image=session_state.uploaded_image,
                             model_used=MODEL,
                             pred_class=session_state.pred_class,
-                            pred_conf=session_state.pred_conf,
                             correct=True))
     elif session_state.feedback == "No":
         session_state.correct_class = st.text_input("What should the correct label be?")
         if session_state.correct_class:
             st.write("Thank you for that, we'll use your help to make our model better!")
             # Log prediction information to terminal (this could be stored in Big Query or something...)
-            print(update_logger(image=session_state.image,
+            print(update_logger(image=session_state.uploaded_image,
                                 model_used=MODEL,
                                 pred_class=session_state.pred_class,
-                                pred_conf=session_state.pred_conf,
                                 correct=False,
                                 user_label=session_state.correct_class))
 
-# TODO: code could be cleaned up to work with a main() function...
-# if __name__ == "__main__":
-#     main()
+if session_state.pred_button and MODEL== "cc_project_ugly_duckling":
+    text_outupt = "Not supported in GCP APP Engine version"
+    st.write(text_outupt)

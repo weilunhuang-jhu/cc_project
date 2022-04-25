@@ -6,24 +6,13 @@ from keras.applications.imagenet_utils import decode_predictions, preprocess_inp
 import googleapiclient.discovery
 from google.api_core.client_options import ClientOptions
 
-base_classes = ['chicken_curry',
- 'chicken_wings',
- 'fried_rice',
- 'grilled_salmon',
- 'hamburger',
- 'ice_cream',
- 'pizza',
- 'ramen',
- 'steak',
- 'sushi']
-
 lesion_classes = [
-    'SPL',
-    'NSPL-B',
-    "NSPL-A",
-    "Skin",
+    "Background",
     "Skin edge",
-    "Background"]
+    "Skin",
+    "NSPL-A",
+    'NSPL-B',
+    'SPL']
 
 classes_and_models = {
     "model_1": {
@@ -31,12 +20,8 @@ classes_and_models = {
         "model_name": "cc_project_skin_lesion_vgg16" # change to be your model name
     },
     "model_2": {
-        "classes": sorted(base_classes + ["donut"]),
-        "model_name": "efficientnet_model_2_11_classes"
-    },
-    "model_3": {
-        "classes": sorted(base_classes + ["donut", "not_food"]),
-        "model_name": "efficientnet_model_3_12_classes"
+        "classes": lesion_classes,
+        "model_name": "cc_project_ugly_duckling"
     }
 }
 
@@ -68,13 +53,8 @@ def predict_json(project, region, model, instances, version=None):
     # Create ML engine resource endpoint and input data
     ml_resource = googleapiclient.discovery.build(
         "ml", "v1", cache_discovery=False, client_options=client_options).projects()
-    x = instances.numpy()
-    x = np.expand_dims(x, axis=0)
-    x = preprocess_input(x)
-    instances_list = x.tolist() # turn input into list (ML Engine wants JSON)
-    
     input_data_json = {"signature_name": "serving_default",
-                       "instances": instances_list} 
+                       "instances": instances} 
 
     request = ml_resource.predict(name=model_path, body=input_data_json)
     response = request.execute()
@@ -93,27 +73,23 @@ def predict_json(project, region, model, instances, version=None):
 def get_image(filename):
     img = tf.io.decode_image(filename, channels=3) # make sure there's 3 colour channels (for PNG's)
     img = tf.image.resize(img, [150, 150])
-    # x = image.img_to_array(img)
+    channels = tf.unstack(img, axis=-1) 
+    img = tf.stack([channels[2], channels[1], channels[0]], axis=-1) # rgb2bgr
+    img = img.numpy().transpose(1,0,2) # make to HWC align with opencv
+
+    # align with ugly duckling img format
+    # # Turn tensors into float16 (saves a lot of space, ML Engine has a limit of 1.5MB per request)
+    img = np.expand_dims(img, axis=0).astype(np.float16)
+    img /= 255.
+
+    # img = img.numpy()
+    # img = np.expand_dims(img, axis=0)
+    # img = preprocess_input(img)
+    # img = img.astype(np.int8) # debug
+
     return img
 
-# Create a function to import an image and resize it to be able to be used with our model
-def load_and_prep_image(filename, img_shape=224, rescale=False):
-  """
-  Reads in an image from filename, turns it into a tensor and reshapes into
-  (224, 224, 3).
-  """
-  # Decode it into a tensor
-#   img = tf.io.decode_image(filename) # no channels=3 means model will break for some PNG's (4 channels)
-  img = tf.io.decode_image(filename, channels=3) # make sure there's 3 colour channels (for PNG's)
-  # Resize the image
-  img = tf.image.resize(img, [img_shape, img_shape])
-  # Rescale the image (get all values between 0 and 1)
-  if rescale:
-      return img/255.
-  else:
-      return img
-
-def update_logger(image, model_used, pred_class, pred_conf, correct=False, user_label=None):
+def update_logger(image, model_used, pred_class, correct=False, user_label=None):
     """
     Function for tracking feedback given in app, updates and reutrns 
     logger dictionary.
@@ -122,7 +98,6 @@ def update_logger(image, model_used, pred_class, pred_conf, correct=False, user_
         "image": image,
         "model_used": model_used,
         "pred_class": pred_class,
-        "pred_conf": pred_conf,
         "correct": correct,
         "user_label": user_label
     }   
