@@ -79,14 +79,15 @@ def main():
     models = ["cc_project_skin_lesion_vgg16", "cc_project_skin_lesion_vgg16_gpu"]
     REGIONs = [None, "us-east4"]
 
-    # Get Prediction time
+    # load image
     Blob_folder = "../data/Blobs"
     fnames = glob.glob(Blob_folder + "/*.png")
     fnames.sort()
     fname = fnames[0]
     img = get_image(fname)
-    num_img = 10
+    num_img = 10 # change number of image here for experiment
 
+    # Get Prediction time
     print("Using regional end-points")
     for model,region in zip(models, REGIONs):
         t0 = time.perf_counter()

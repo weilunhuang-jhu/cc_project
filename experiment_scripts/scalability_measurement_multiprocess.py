@@ -1,4 +1,4 @@
-# Script to measure the scalability
+# Script to measure the scalability with different number of requests (process)
 
 import os
 import time
@@ -88,17 +88,18 @@ def main():
     PROJECT = "ccproject-343606" # change for your GCP project
     REGION = None # change for your GCP region (where your model is hosted)
 
-    # Get Prediction time
+    # load image
     Blob_folder = "../data/Blobs"
     fnames = glob.glob(Blob_folder + "/*.png")
     fnames.sort()
     fname = fnames[0]
     img = get_image(fname)
-    num_img = 10
+    num_img = 10 # change number of image here for experiment
+    num_worker = 16 # change number of workers for experiment
 
-    num_worker = 1
     pool = multiprocessing.Pool(num_worker)
 
+    # Get Prediction time
     t0 = time.perf_counter()
     for i in range(num_worker):
         pool.apply_async(worker, (num_img, model, img, PROJECT))

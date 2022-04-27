@@ -80,14 +80,15 @@ def main():
     PROJECT = "ccproject-343606" # change for your GCP project
     REGIONs = ["asia-northeast1", "europe-west1", "us-east4", "us-central1"]
 
-    # Get Prediction time
+    # load image
     Blob_folder = "../data/Blobs"
     fnames = glob.glob(Blob_folder + "/*.png")
     fnames.sort()
     fname = fnames[0]
     img = get_image(fname)
-    num_img = 10
+    num_img = 10 # change number of image here for experiment
 
+    # Get Prediction time
     print("Using global end-points")
     for model in models_global:
         t0 = time.perf_counter()

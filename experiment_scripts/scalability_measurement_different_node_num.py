@@ -1,4 +1,4 @@
-# Script to measure the scalability
+# Script to measure the scalability for using different number of minimum nodes supported by model service
 
 import os
 import time
@@ -86,13 +86,15 @@ def main():
     os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "ccproject-343606-498535894d22.json" # change for your GCP key
     PROJECT = "ccproject-343606" # change for your GCP project
     REGION = None # change for your GCP region (where your model is hosted)
+
+    # load image
     Blob_folder = "../data/Blobs"
     fnames = glob.glob(Blob_folder + "/*.png")
     fnames.sort()
     fname = fnames[0]
     img = get_image(fname)
-    num_img = 10
-    num_worker = 16
+    num_img = 10 # change number of image here for experiment
+    num_worker = 16 # change number of workers for experiment
 
     # Get Prediction time
     for model in models:
